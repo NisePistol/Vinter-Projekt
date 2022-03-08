@@ -8,23 +8,21 @@ namespace Vinter_Projekt
         static int screenW = 800;
         static int screenH = 600;
 
- 
         static void Main(string[] args)
         {
-            //Texture2D spaceship = Raylib.LoadTexture(@"Resurser/spaceship.png");
-            
             Random generator = new Random();
             bool hasShot = false;
+            float time = 30;
+            int points = 0;
 
-            //Slumpar fiendens storlek
-            int enemySize = generator.Next(15, 35);
-
-            //Slumpar fiendens position i x-led
-            int enemyX = generator.Next(enemySize, screenW - enemySize * 2);
-
-            //Slumpar fiendens hastighet
-            int enemySpeed = generator.Next(2, 6);
+            //Skapar variabler till fienden
+            int enemyX = 0;
             int enemyY = 0;
+            int enemySize = 0;
+            int enemySpeed = 0;
+
+            //Sätter fiendens position
+            ResetEnemy(ref enemyX, ref enemyY, ref enemySize, ref enemySpeed);
 
             //Create player
             Rectangle player = new Rectangle(screenW / 2, screenH / 2, 25, 25);
@@ -39,46 +37,94 @@ namespace Vinter_Projekt
 
                 Raylib.ClearBackground(Color.LIGHTGRAY);
 
-                
-
-                //Create enemy
-                Rectangle enemy = new Rectangle(enemyX, enemyY, enemySize, enemySize);
-
-                //Move player
-                Move(ref player.x, ref player.y);
-
-                if (Raylib.IsKeyDown(KeyboardKey.KEY_SPACE))
+                //Scen 1
+                if (time > 0)
                 {
-                    hasShot = true;
-                    Bullet.TurnOnBulletColor();
+                    //Ritar tiden som text och minskar den varje sekund
+                    Raylib.DrawText($"{(int)time}", 350, 100, 75, Color.RED);
+                    time -= Raylib.GetFrameTime();
+
+                    //Skapar fiende
+                    Rectangle enemy = new Rectangle(enemyX, enemyY, enemySize, enemySize);
+
+                    //Flyttar spelare
+                    Move(ref player.x, ref player.y);
+
+                    //Om klickar space så skjuter man
+                    if (Raylib.IsKeyDown(KeyboardKey.KEY_SPACE))
+                    {
+                        hasShot = true;
+                    }
+
+                    if (hasShot)
+                    {
+                        //Kör skjut funktionen från bullet klassen
+                        float bulletPosY = Bullet.Shoot(player.x, player.y);
+
+                        //Om skottet åker utanför skärmen så skjuter man inte längre
+                        if (bulletPosY < -15)
+                        {
+                            hasShot = false;
+                        }
+
+                        //Om skottet träffar en fiende
+                        else if (Raylib.CheckCollisionRecs(enemy, Bullet.bulletRectangle))
+                        {
+                            //Återställer skottet
+                            Bullet.ResetBullet();
+
+                            //Man får ett poäng
+                            points++;
+
+                            //Återställer fiendens position och värden
+                            ResetEnemy(ref enemyX, ref enemyY, ref enemySize, ref enemySpeed);
+                        }
+                    }
+
+                    //Ritar spelaren
+                    Raylib.DrawRectangleRec(player, Color.BLUE);
+
+                    //Kollar kollisionen för spelaren
+                    PlayerCollision(ref player);
+
+                    //Ritar fienden
+                    Raylib.DrawRectangleRec(enemy, Color.BLACK);
+
+                    //Om fienden åker utanför skärmen kommer en ny
+                    if (enemyY + enemySize > screenH)
+                    {
+                        ResetEnemy(ref enemyX, ref enemyY, ref enemySize, ref enemySpeed);
+                    }
+
+                    //Flytta fiende
+                    enemyY += enemySpeed;
                 }
 
-                if (hasShot)
+                //Scen 2
+                else
                 {
-                    float bulletPosY = Bullet.Shoot(player.x, player.y);
-
-                    if (bulletPosY < -15)
-                    {
-                        hasShot = false;
-                    }
-                    else if (Raylib.CheckCollisionRecs(enemy, Bullet.bulletRectangle))
-                    {
-                        enemySize = 0;
-                        Bullet.BulletHit();
-                    }
+                    //Skriver slut text
+                    Raylib.DrawText("GAME OVER", 185, 100, 75, Color.RED);
+                    Raylib.DrawText($"SCORE: {points}", 230, 250, 75, Color.PURPLE);
                 }
-
-                Raylib.DrawRectangleRec(player, Color.BLUE);
-                PlayerCollision(ref player);
-
-                //Draw enemy
-                Raylib.DrawRectangleRec(enemy, Color.BLACK);
-
-                //Move enemies
-                enemyY += enemySpeed;
 
                 Raylib.EndDrawing();
             }
+        }
+
+        static void ResetEnemy (ref int enemyX, ref int enemyY, ref int enemySize, ref int enemySpeed) 
+        {
+            Random generator = new Random();
+            enemyY = 0;
+
+            //Slumpar fiendens x position
+            enemyX = generator.Next(enemySize, screenW - enemySize * 2);
+
+            //Slumpar fiendens storlek
+            enemySize = generator.Next(15, 35);
+
+            //Slumpar fiendens hastighet
+            enemySpeed = generator.Next(3, 6);
         }
 
         static void Move(ref float posX, ref float posY)
@@ -117,6 +163,7 @@ namespace Vinter_Projekt
 
         static void PlayerCollision(ref Rectangle player)
         {
+            //Gör så att spelaren inte kan åka utanför skärmen
             if (player.y <= 0)
             {
                 player.y = 0;
@@ -149,7 +196,7 @@ namespace Vinter_Projekt
 
         public static float Shoot(float playerPosX, float playerPosY)
         {
-            if (bulletRectangle.y > -bulletHeight-1)
+            if (bulletRectangle.y > -bulletHeight - 1)
             {
                 int bulletSpeed = 10;
 
@@ -176,7 +223,7 @@ namespace Vinter_Projekt
 
             return bulletRectangle.y;
         }
-    
+
         public static void ResetBulletPosition(int playerPosX, int playerPosY)
         {
             //Återställer skottets position
@@ -184,17 +231,10 @@ namespace Vinter_Projekt
             bulletRectangle.y = playerPosY;
         }
 
-        public static void BulletHit()
+        public static void ResetBullet()
         {
-            //Stänger av skottets färg
-            bulletColor = Color.BLANK;
-
             //flyttar skottet till slutet så att spelaren kan skjuta igen
             bulletRectangle.y = -15;
-        }
-        public static void TurnOnBulletColor()
-        {
-            bulletColor = Color.GOLD;
         }
     }
 }
