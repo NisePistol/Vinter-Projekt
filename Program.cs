@@ -8,14 +8,13 @@ namespace Vinter_Projekt
         static int screenW = 800;
         static int screenH = 600;
 
+ 
         static void Main(string[] args)
         {
+            //Texture2D spaceship = Raylib.LoadTexture(@"Resurser/spaceship.png");
+            
             Random generator = new Random();
             bool hasShot = false;
-
-            //Spelarens position
-            int posX = 200;
-            int posY = 300;
 
             //Slumpar fiendens storlek
             int enemySize = generator.Next(15, 35);
@@ -27,7 +26,8 @@ namespace Vinter_Projekt
             int enemySpeed = generator.Next(2, 6);
             int enemyY = 0;
 
-            //Texture2D spaceship = Raylib.LoadTexture(@"Resurser/spaceship.png");
+            //Create player
+            Rectangle player = new Rectangle(screenW / 2, screenH / 2, 25, 25);
 
             Raylib.InitWindow(screenW, screenH, "Space Shooter 76");
             Raylib.SetTargetFPS(60);
@@ -39,23 +39,23 @@ namespace Vinter_Projekt
 
                 Raylib.ClearBackground(Color.LIGHTGRAY);
 
-                //Create player
-                Rectangle player = new Rectangle(posX, posY, 25, 25);
+                
 
                 //Create enemy
                 Rectangle enemy = new Rectangle(enemyX, enemyY, enemySize, enemySize);
 
                 //Move player
-                Move(ref posX, ref posY);
+                Move(ref player.x, ref player.y);
 
                 if (Raylib.IsKeyDown(KeyboardKey.KEY_SPACE))
                 {
                     hasShot = true;
+                    Bullet.TurnOnBulletColor();
                 }
 
                 if (hasShot)
                 {
-                    float bulletPosY = Bullet.Shoot(posX, posY);
+                    float bulletPosY = Bullet.Shoot(player.x, player.y);
 
                     if (bulletPosY < -15)
                     {
@@ -64,14 +64,12 @@ namespace Vinter_Projekt
                     else if (Raylib.CheckCollisionRecs(enemy, Bullet.bulletRectangle))
                     {
                         enemySize = 0;
-                        hasShot = false;
-                        Bullet.ResetBulletPosition();
+                        Bullet.BulletHit();
                     }
                 }
 
-
-                //Raylib.DrawTexture(spaceship, 200, 300, Color.BLACK);
                 Raylib.DrawRectangleRec(player, Color.BLUE);
+                PlayerCollision(ref player);
 
                 //Draw enemy
                 Raylib.DrawRectangleRec(enemy, Color.BLACK);
@@ -83,7 +81,7 @@ namespace Vinter_Projekt
             }
         }
 
-        static void Move(ref int posX, ref int posY)
+        static void Move(ref float posX, ref float posY)
         {
             int pullForce = 3;
             int speed = 6;
@@ -116,57 +114,87 @@ namespace Vinter_Projekt
                 posX -= speed;
             }
         }
+
+        static void PlayerCollision(ref Rectangle player)
+        {
+            if (player.y <= 0)
+            {
+                player.y = 0;
+            }
+            else if (player.y + 25 >= screenH)
+            {
+                player.y = screenH - 25;
+            }
+            if (player.x <= 0)
+            {
+                player.x = 0;
+            }
+            else if (player.x + 25 >= screenW)
+            {
+                player.x = screenW - 25;
+            }
+        }
     }
 
     class Bullet
     {
-        static int bulletY = 0;
-        static int bulletX = 0;
+        static bool check = false;
+
         static int bulletWidth = 10;
         static int bulletHeight = 15;
 
-        static bool check = false;
+        static Color bulletColor = Color.GOLD;
 
-        public static Rectangle bulletRectangle = new Rectangle(bulletX, bulletY, bulletWidth, bulletHeight);
+        public static Rectangle bulletRectangle = new Rectangle(0, 0, bulletWidth, bulletHeight);
 
-        public static float Shoot(int posX, int posY)
+        public static float Shoot(float playerPosX, float playerPosY)
         {
-            if (bulletY > -16)
+            if (bulletRectangle.y > -bulletHeight-1)
             {
                 int bulletSpeed = 10;
 
                 if (!check)
                 {
                     //Sätter skottets position lika med spelarens position
-                    bulletX = posX;
-                    bulletY = posY;
+                    bulletRectangle.x = playerPosX + bulletWidth / 2;
+                    bulletRectangle.y = playerPosY;
                     check = true;
                 }
 
                 //Ritar skottet
-                Raylib.DrawRectangleRec(bulletRectangle, Color.GOLD);
+                Raylib.DrawRectangleRec(bulletRectangle, bulletColor);
 
-                //Sätter rektangelns position
-                bulletRectangle.x = bulletX + bulletWidth / 2;
-                bulletRectangle.y = bulletY;
-
-                //Flyttar skottet
-                bulletY -= bulletSpeed;
+                //Flyttar skottet 
+                bulletRectangle.y -= bulletSpeed;
             }
             else
             {
                 //Återställer skottets position när skottet hamnar utanför skärmen
-                bulletX = posX;
-                bulletY = posY;
+                bulletRectangle.x = playerPosX + bulletWidth / 2;
+                bulletRectangle.y = playerPosY;
             }
 
-            return bulletY;
+            return bulletRectangle.y;
         }
     
-        public static void ResetBulletPosition()
+        public static void ResetBulletPosition(int playerPosX, int playerPosY)
         {
-            //Återställer skottets position när skottet hamnar utanför skärmen
-            
+            //Återställer skottets position
+            bulletRectangle.x = playerPosX + bulletWidth / 2;
+            bulletRectangle.y = playerPosY;
+        }
+
+        public static void BulletHit()
+        {
+            //Stänger av skottets färg
+            bulletColor = Color.BLANK;
+
+            //flyttar skottet till slutet så att spelaren kan skjuta igen
+            bulletRectangle.y = -15;
+        }
+        public static void TurnOnBulletColor()
+        {
+            bulletColor = Color.GOLD;
         }
     }
 }
