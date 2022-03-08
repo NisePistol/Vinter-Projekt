@@ -41,10 +41,9 @@ namespace Vinter_Projekt
 
                 //Create player
                 Rectangle player = new Rectangle(posX, posY, 25, 25);
-                
+
                 //Create enemy
                 Rectangle enemy = new Rectangle(enemyX, enemyY, enemySize, enemySize);
-
 
                 //Move player
                 Move(ref posX, ref posY);
@@ -58,9 +57,15 @@ namespace Vinter_Projekt
                 {
                     float bulletPosY = Bullet.Shoot(posX, posY);
 
-                    if (bulletPosY < 1 || Raylib.CheckCollisionRecs(player, enemy))
+                    if (bulletPosY < -15)
                     {
                         hasShot = false;
+                    }
+                    else if (Raylib.CheckCollisionRecs(enemy, Bullet.bulletRectangle))
+                    {
+                        enemySize = 0;
+                        hasShot = false;
+                        Bullet.ResetBulletPosition();
                     }
                 }
 
@@ -117,15 +122,17 @@ namespace Vinter_Projekt
     {
         static int bulletY = 0;
         static int bulletX = 0;
+        static int bulletWidth = 10;
+        static int bulletHeight = 15;
 
         static bool check = false;
 
+        public static Rectangle bulletRectangle = new Rectangle(bulletX, bulletY, bulletWidth, bulletHeight);
+
         public static float Shoot(int posX, int posY)
         {
-            if (bulletY > 0)
+            if (bulletY > -16)
             {
-                int bulletWidth = 10;
-                int bulletHeight = 15;
                 int bulletSpeed = 10;
 
                 if (!check)
@@ -136,17 +143,30 @@ namespace Vinter_Projekt
                     check = true;
                 }
 
-                //Ritar skottet och flyttar det
-                Raylib.DrawRectangle(bulletX + bulletWidth / 2, bulletY, bulletWidth, bulletHeight, Color.GOLD);
+                //Ritar skottet
+                Raylib.DrawRectangleRec(bulletRectangle, Color.GOLD);
+
+                //Sätter rektangelns position
+                bulletRectangle.x = bulletX + bulletWidth / 2;
+                bulletRectangle.y = bulletY;
+
+                //Flyttar skottet
                 bulletY -= bulletSpeed;
             }
             else
             {
+                //Återställer skottets position när skottet hamnar utanför skärmen
                 bulletX = posX;
                 bulletY = posY;
             }
 
             return bulletY;
+        }
+    
+        public static void ResetBulletPosition()
+        {
+            //Återställer skottets position när skottet hamnar utanför skärmen
+            
         }
     }
 }
